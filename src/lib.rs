@@ -2,6 +2,7 @@ use std::{fs, io, path};
 
 pub type RecurseResult<T> = Result<T, RecurseError>;
 
+#[derive(Debug)]
 pub enum RecurseError {
     NotADirectory,
     IOErr(io::Error),
