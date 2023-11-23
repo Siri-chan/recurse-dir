@@ -1,4 +1,4 @@
-use std::{fs, io, path};
+use std::{io, path};
 
 pub type RecurseResult<T> = Result<T, RecurseError>;
 
@@ -9,10 +9,10 @@ pub enum RecurseError {
 }
 
 pub fn recurse_find(
-    root_dir: path::PathBuf,
+    root_dir: &path::PathBuf,
     condition: fn(&path::PathBuf) -> bool,
-) -> RecurseResult<Vec<fs::File>> {
-    let mut matches: Vec<fs::File> = Vec::new();
+) -> RecurseResult<Vec<path::PathBuf>> {
+    let mut matches: Vec<path::PathBuf> = Vec::new();
     if !root_dir.is_dir() {
         return Err(RecurseError::NotADirectory);
     }
@@ -26,16 +26,29 @@ pub fn recurse_find(
             Err(err) => return Err(RecurseError::IOErr(err)),
         };
         if path.is_dir() {
-            match recurse_find(root_dir.clone(), condition) {
+            match recurse_find(&path, condition) {
                 Ok(mut vec) => matches.append(&mut vec),
                 Err(e) => return Err(e),
-            }
+            };
         } else if condition(&path) {
-            matches.push(match fs::File::open(path) {
-                Ok(f) => f,
-                Err(err) => return Err(RecurseError::IOErr(err)),
-            })
+            matches.push(path);
         }
     }
     return Ok(matches);
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::recurse_find;
+
+    #[test]
+    fn test() {
+        assert_eq!(
+            vec![std::path::PathBuf::from(".\\Cargo.toml")],
+            recurse_find(&std::path::PathBuf::from("."), |path| {
+                return path.extension().is_some_and(|s| s.to_str() == Some("toml"));
+            })
+            .unwrap()
+        )
+    }
 }
